@@ -1,4 +1,4 @@
-param([bool]$showPressEnter)
+param([bool]$showPressEnter, [bool]$askForPath, [bool]$askForConfirm)
 
 function removeExtensions
 {
@@ -7,23 +7,47 @@ function removeExtensions
 	return $fileName -replace ".rmvb","" -replace ".mp4","" -replace ".avi","" -replace ".mkv","" -replace ".srt",""
 }
 
+function pressEnter
+{
+	Write-Host "`n"
+	Read-Host -Prompt "Press <enter> to continue..."
+}
+
 # =================================================================================================
 # INICIO
 # =================================================================================================
 
-$pathMainFolder = Read-Host "`nEntre com o diretorio para criar as pastas"
-# Write-Host "dir [$pathMainFolder]"
-
-# $pathMainFolder = "C:\Users\ferna\Desktop\PastaTestePS"
-# $pathMainFolder = "F:\#Eu\Castle"
+if ($askForPath)
+{
+	$pathMainFolder = Read-Host "`nEntre com o diretorio para criar as pastas"
+}
+else
+{
+	$pathMainFolder = "C:\Users\ferna\Desktop\PastaTestePS"
+	# $pathMainFolder = "F:\#Eu\Castle"
+}
 
 if (-not (Test-Path -Path $pathMainFolder -PathType Container))
 {
-	Write-Host "Diretorio invalido!"
+	Write-Host "Diretorio invalido!`n"
+	pressEnter
 	exit
 }
 
-Write-Host "Diretorio : $pathMainFolder"
+Write-Host "`nDiretorio : $pathMainFolder `n"
+
+if ($askForConfirm)
+{
+	$result = Read-Host "Deseja continuar? [s/n]"
+	# Write-Host "result [$result]"
+
+	if ($result.ToLower() -eq "n")
+	{
+		Write-Host "`nCancelado!"
+		pressEnter
+		exit
+	}
+}
 
 $movieFiles = [IO.Directory]::GetFiles($pathMainFolder, "*.rmvb")
 $movieFiles += [IO.Directory]::GetFiles($pathMainFolder, "*.mp4")
@@ -38,12 +62,13 @@ $subFilesCount = $subFiles.Count
 if ($movieFilesCount -ne $subFilesCount)
 {
 	Write-Host "Total dos arquivos de filme [$movieFilesCount] e leganda [$subFilesCount] nao sao iguais."
+	pressEnter
 	exit
 }
 
 For ($i=0; $i -lt $movieFilesCount; $i++)
 {
-	Write-Host "==========================="
+	# Write-Host "==========================="
 
 	$movieTmp = $movieFiles[$i]
 	$subTmp = $subFiles[$i]
@@ -58,13 +83,9 @@ For ($i=0; $i -lt $movieFilesCount; $i++)
 
 	if ($movieNameClean.toLower() -ne $subNameClean.toLower())
 	{
-		Write-Host "diff"
-
 		For ($j=0; $j -lt $subFilesCount; $j++)
 		{
 			$subTmp2 = $subFiles[$j]
-
-			# Write-Host "index j [$j]"
 
 			$subSplit2 = $subTmp2 -split "\\"
 			$subName2 = $subSplit2[($subSplit2).length - 1]
@@ -72,8 +93,6 @@ For ($i=0; $i -lt $movieFilesCount; $i++)
 
 			if ($movieNameClean.toLower() -eq $subNameClean2.toLower())
 			{
-				Write-Host = "Found equal - index [$j]"
-
 				$subTmp = $subTmp2
 
 				$subName = $subName2
@@ -84,33 +103,43 @@ For ($i=0; $i -lt $movieFilesCount; $i++)
 		}
 	}
 
+	Write-Host "Criando pasta [$($movieNameClean.toLower())]"
 	New-Item -Path $pathMainFolder -Name $movieNameClean.toLower() -ItemType Directory -Force > $null
 
 	$newPathFileName = $pathMainFolder + "\" + $movieNameClean.toLower()
 
+	Write-Host "Movendo [$movieTmp] para [$($newPathFileName)]"
 	Move-Item -Path $movieTmp -Destination $newPathFileName
+	Write-Host "Movendo [$subTmp] para [$($newPathFileName)]"
 	Move-Item -Path $subTmp -Destination $newPathFileName
 
-	Write-Host "index [$i]"
-	Write-Host "movie [$movieTmp] sub [$subTmp]"
-	Write-Host "movie - file [$movieName] clean [$movieNameClean]"
-	Write-Host "sub - file [$subName] clean [$subNameClean]"
-	Write-Host "folder [($newPathFileName)]"
+	# Write-Host "index [$i]"
+	# Write-Host "movie [$movieTmp] sub [$subTmp]"
+	# Write-Host "movie - file [$movieName] clean [$movieNameClean]"
+	# Write-Host "sub - file [$subName] clean [$subNameClean]"
+	# Write-Host "folder [($newPathFileName)]"
 }
 
-# $oRetorno = GetFolderName
-# Write-Host "O retorno foi : $oRetorno"
+Write-Host "`n`nListando arquivos:`n"
 
-# Write-Host "`n==================================================`n"
-# Write-Host "Total arquivos torrent  : " $totalArquivoTorrent
-# Write-Host "Total found             : " $totalFound
-# Write-Host "Total not found         : " $totalNotFound
-# Write-Host ""
-# Write-Host "Result                  : " $result
+$dirs = [IO.Directory]::GetDirectories($pathMainFolder)
 
-# Write-Host "showPressEnter : $showPressEnter"
+foreach ($dir in $dirs)
+{
+	Write-Host $dir
+	
+	$files = [IO.Directory]::GetFiles($dir)
+
+	foreach ($file in $files)
+	{
+		$fileSplit = $file -split "\\"
+		$fileName = $fileSplit[($fileSplit).length - 1]
+
+		Write-Host $fileName
+	}
+}
+
 if ($showPressEnter)
 {
-	Write-Host "`n"
-	Read-Host -Prompt "Press <enter> to continue..."
+	pressEnter
 }
